@@ -1,0 +1,5 @@
+audios/
+detections/
+*.pt
+*.yaml
+*.env
