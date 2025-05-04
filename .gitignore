@@ -3,3 +3,5 @@ detections/
 *.pt
 *.yaml
 *.env
+__pycache__/
+*.pyc
