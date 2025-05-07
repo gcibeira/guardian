@@ -16,8 +16,8 @@ class OverlayRenderer:
     def render(
         self,
         frame,
-        tracked: List[TrackedObject],
-        linger_events: List[LingerEvent]
+        tracked: List[TrackedObject] = [],
+        linger_events: List[LingerEvent] = []
     ):
         # Dibujar ROI si existe
         if self.roi:

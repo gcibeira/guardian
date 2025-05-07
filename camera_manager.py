@@ -1,9 +1,7 @@
-# camera_manager.py
-
 import cv2
 import time
 import logging
-from typing import Optional
+import numpy as np
 
 class CameraManager:
     """
@@ -29,13 +27,13 @@ class CameraManager:
         self.last_attempt = time.time()
         if self.cap:
             self.cap.release()
-        self.logger.info(f"[CameraManager] Conectando a {self.url}…")
+        self.logger.info(f"Conectando a {self.url}…")
         self.cap = cv2.VideoCapture(self.url)
         if not self.cap.isOpened():
-            self.logger.error(f"[CameraManager] No se pudo abrir stream {self.url}")
+            self.logger.error(f"No se pudo abrir stream {self.url}")
             self.cap = None
 
-    def read_frame(self) -> Optional:
+    def read_frame(self) -> np.ndarray:
         """
         Devuelve un único frame BGR.
         Si falla la lectura, la conexión se cierra y retorna None.
@@ -49,7 +47,7 @@ class CameraManager:
 
         ret, frame = self.cap.read()
         if not ret or frame is None:
-            self.logger.warning("[CameraManager] Lectura fallida; reconectando…")
+            self.logger.warning("Lectura fallida; reconectando…")
             self.cap.release()
             self.cap = None
             return None
@@ -62,7 +60,7 @@ class CameraManager:
         Devuelve False si el usuario presionó 'q' para salir.
         """
         if self.window_name:
-            cv2.imshow(self.window_name, frame)
+            cv2.imshow(self.window_name, cv2.resize(frame, (1280, 768)))
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 return False
         return True
