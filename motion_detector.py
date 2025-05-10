@@ -9,12 +9,10 @@ class MotionDetector:
     """
     def __init__(
         self,
-        skip_frames: int = 5,
         threshold: int = 25,
         blur_kernel: Tuple[int, int] = (21, 21),
         min_area: int = 5000,
     ):
-        self.skip_frames = skip_frames
         self.threshold = threshold
         self.blur_kernel = blur_kernel
         self.min_area = min_area
@@ -28,9 +26,6 @@ class MotionDetector:
         Retorna True si hay movimiento significativo en este frame.
         Internamente actualiza self.prev_gray y usa skip_frames.
         """
-        self.frame_count += 1
-        if self.frame_count % self.skip_frames != 0:
-            return False
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, self.blur_kernel, 0)

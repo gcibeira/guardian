@@ -17,8 +17,8 @@ class Tracker:
     Asocia detecciones a IDs persistentes usando distancia de centroides.
     Permite reaparecer objetos tras breves pérdidas.
     """
-    def __init__(self, max_missing: int = 5, dist_threshold: float = 50.0):
-        self.max_missing = max_missing
+    def __init__(self, max_missing_frames: int = 5, dist_threshold: float = 50.0):
+        self.max_missing_frames = max_missing_frames
         self.dist_threshold = dist_threshold
         self.next_id = 0
         self.tracks: Dict[int, Dict] = {}
@@ -59,7 +59,7 @@ class Tracker:
         for tid, tr in self.tracks.items():
             if tid not in used_ids:
                 tr['missing'] += 1
-                if tr['missing'] <= self.max_missing:
+                if tr['missing'] <= self.max_missing_frames:
                     updated[tid] = tr
 
         self.tracks = updated

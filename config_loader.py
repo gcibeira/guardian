@@ -13,7 +13,6 @@ class ConfigError(Exception):
 @dataclass
 class MotionConfig:
     enabled: bool = False
-    skip_frames: int = 5
     min_area: int = 5000
     threshold: int = 25
     blur_kernel: List[int] = field(default_factory=lambda: [21, 21])
@@ -25,6 +24,7 @@ class LingerConfig:
     roi: Optional[List[int]] = None
     linger_time_seconds: float = 5.0
     tracking_distance_threshold: float = 75.0
+    max_missing_frames: int = 5
 
 
 @dataclass
@@ -45,6 +45,8 @@ class DetectionConfig:
     classes_to_detect: List[str] = field(default_factory=lambda: ["person"])
     confidence_threshold: float = 0.5
     motion_detection: MotionConfig = field(default_factory=MotionConfig)
+    skip_frames: int = 5
+    force_interval: int = 25
 
 
 @dataclass
@@ -103,6 +105,8 @@ def load_config(path: str = "config.yaml") -> AppConfig:
         classes_to_detect=list(det_classes),
         confidence_threshold=d_conf.get("confidence_threshold", DetectionConfig.confidence_threshold),
         motion_detection=det_motion,
+        skip_frames=d_conf.get("skip_frames", DetectionConfig.skip_frames),
+        force_interval=d_conf.get("force_interval", DetectionConfig.force_interval)
     )
 
     # --- Alerting ---
