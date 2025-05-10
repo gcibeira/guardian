@@ -32,12 +32,14 @@ class LingerDetector:
             if x1 <= cx <= x2 and y1 <= cy <= y2:
                 if obj.id not in self.enter_times:
                     self.enter_times[obj.id] = now
+                    self.logger.info(f"Objeto {obj.id} entró en la ROI a {now:.2f}")                    
                 else:
                     dur = now - self.enter_times[obj.id]
                     if dur >= self.linger_time:
                         events.append(LingerEvent(
                             id=obj.id, duration=dur, box=obj.box, label=obj.label
                         ))
+                        self.logger.info(f"Objeto {obj.id} permaneció en la ROI por {dur:.2f} segundos")
             else:
                 # salió de la ROI: reiniciamos timer
                 self.enter_times.pop(obj.id, None)
