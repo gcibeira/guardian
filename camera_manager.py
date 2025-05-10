@@ -60,7 +60,7 @@ class CameraManager:
         Devuelve False si el usuario presionó 'q' para salir.
         """
         if self.window_name:
-            cv2.imshow(self.window_name, cv2.resize(frame, (1280, 768)))
+            cv2.imshow(self.window_name, cv2.resize(frame, (1280, 720)))
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 return False
         return True
