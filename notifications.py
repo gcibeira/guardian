@@ -1,10 +1,9 @@
-# notifications.py
-
 import logging
 import smtplib
 from email.message import EmailMessage
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any
+from object_detector import Detection
 
 import pychromecast
 
@@ -20,7 +19,7 @@ class NotificationHandler(ABC):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: List[Dict[str, Any]],
+        detected_objects: Detection,
         frame_img,
     ) -> None:
         """Envía la alerta al canal correspondiente."""
@@ -39,7 +38,7 @@ class EmailNotificationHandler(NotificationHandler):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: List[Dict[str, Any]],
+        detected_objects: Detection,
         frame_img,
     ) -> None:
         if not self.enabled:
@@ -54,7 +53,7 @@ class EmailNotificationHandler(NotificationHandler):
             f"Cámara: {camera_name}",
             f"Alerta: {subject_detail}",
             "Objetos detectados: "
-            + ", ".join(f"{o['label']} ({o['confidence']:.2f})" for o in detected_objects),
+            + ", ".join(f"{o.label} ({o.confidence:.2f})" for o in detected_objects),
         ]
         msg.set_content("\n".join(body))
 
@@ -114,7 +113,7 @@ class GoogleHomeNotificationHandler(NotificationHandler):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: List[Dict[str, Any]],
+        detected_objects: Detection,
         frame_img,
     ) -> None:
         if not self.enabled or not self.cast or not detected_objects:
@@ -122,7 +121,7 @@ class GoogleHomeNotificationHandler(NotificationHandler):
 
         mc = self.cast.media_controller
         for obj in detected_objects:
-            url = f"{self.server_url}/{obj['label'].lower()}.mp3"
+            url = f"{self.server_url}/{obj.label.lower()}.mp3"
             try:
                 mc.play_media(url, "audio/mpeg")
                 mc.block_until_active()
@@ -137,7 +136,7 @@ class NoOpNotificationHandler(NotificationHandler):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: List[Dict[str, Any]],
+        detected_objects: Detection,
         frame_img,
     ) -> None:
         return
@@ -162,7 +161,7 @@ class NotificationManager:
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: List[Dict[str, Any]],
+        detected_objects: Detection,
         frame_img,
     ) -> None:
         for handler in self.handlers:
