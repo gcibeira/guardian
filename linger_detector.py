@@ -18,7 +18,7 @@ class LingerDetector:
     def __init__(self, roi: Tuple[int, int, int, int], linger_time: float):
         self.roi = roi
         self.linger_time = linger_time
-        self.objects_in_roi: Dict[int, Dict[str, float]] = {}  # Cambiar a un diccionario con más información
+        self.objects_in_roi: Dict[int, Dict[str, float]] = {}
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def update(self, tracked: List, now: float = None) -> List[LingerEvent]:
@@ -33,7 +33,7 @@ class LingerDetector:
                 # El objeto está dentro de la ROI
                 if obj.id not in self.objects_in_roi:
                     self.objects_in_roi[obj.id] = {"enter_time": now, "alert_emitted": False}
-                    self.logger.info(f"Objeto {obj.id} entró en la ROI.")
+                    self.logger.debug(f"Objeto {obj.id} entró en la ROI.")
                 else:
                     linger_duration = now - self.objects_in_roi[obj.id]["enter_time"]
                     if linger_duration > self.linger_time and not self.objects_in_roi[obj.id]["alert_emitted"]:
@@ -49,7 +49,7 @@ class LingerDetector:
             else:
                 # El objeto está fuera de la ROI
                 if obj.id in self.objects_in_roi:
-                    self.logger.info(f"Objeto {obj.id} salió de la ROI.")
+                    self.logger.debug(f"Objeto {obj.id} salió de la ROI.")
                     del self.objects_in_roi[obj.id]  # Limpiar registro al salir
 
         return events
