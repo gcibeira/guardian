@@ -1,13 +1,15 @@
 import threading
 import time
 import logging
+from pathlib import Path
+import cv2
+
 from camera_manager import CameraManager
 from motion_detector import MotionDetector
 from object_detector import ObjectDetector
 from tracker import Tracker
 from linger_detector import LingerDetector
 from overlay_renderer import OverlayRenderer
-from alert_manager import AlertManager
 from notifications import NotificationManager
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,8 @@ class CameraProcessor(threading.Thread):
         self.skip_frames = detection_cfg.skip_frames
         self.force_interval = detection_cfg.force_interval
         self.frame_count = 0
+        self.tracked = []
+        self.linger_events = []
 
         # Instanciar módulos
         self.camera = CameraManager(
@@ -62,8 +66,6 @@ class CameraProcessor(threading.Thread):
             linger_time=cam_cfg.linger_detection.linger_time_seconds,
         )
         self.renderer = OverlayRenderer(roi=tuple(cam_cfg.linger_detection.roi))
-        self.alert_mgr = AlertManager(general_cooldown=cam_cfg.alert_cooldown_seconds)
-
         self.detections = []
 
     def run(self):
@@ -73,51 +75,35 @@ class CameraProcessor(threading.Thread):
             if frame is None:
                 continue
             
-            now = time.monotonic()
             self.frame_count += 1
+            if not self.frame_count % self.skip_frames:
+                now = time.monotonic()
+                moved = self.motion.detect(frame)
+                if moved or self.frame_count % self.force_interval == 0:
+                    self.detections = self.detector.detect(frame)
 
-            moved = self.motion.detect(frame)
-            if moved or self.frame_count % self.force_interval == 0:
-                self.detections = self.detector.detect(frame)
-
-            tracked = self.tracker.update(self.detections)
-            
-            # 4) Detección de permanencia en ROI
-            linger_events = self.linger.update(tracked, now)
-
-            '''
-            # 5) Evaluar alertas
-            # Ignorar detecciones de "person" si hay linger activo
-            general = [
-                d for d in self.detections
-                if not (d.label == "person" and linger_events)
-            ]
-            alerts = self.alert_mgr.evaluate(
-                general=general,
-                linger=linger_events,
-                timestamp=now
-            )
-
-
-            # 7) Guardar snapshots y notificar
-            for alert in alerts:
-                ts = time.strftime("%Y%m%d_%H%M%S")
-                fname = f"{self.name}_{alert.type}_{ts}.jpg"
-                out_dir = Path(self.cam_cfg.save_directory)
-                out_dir.mkdir(parents=True, exist_ok=True)
-                path = out_dir / fname
-                cv2.imwrite(str(path), annotated)
-                # Enviar alerta
-                self.notifier.send(
-                    camera_name=self.name,
-                    subject_detail=alert.type,
-                    detected_objects=alert.objects,
-                    frame_img=annotated
-                )
-            '''
+                self.tracked = self.tracker.update(self.detections)
+                self.linger_events = self.linger.update(self.tracked, now)
+                
+                # 7) Guardar snapshots y notificar
+                for linger_event in self.linger_events:
+                    timestamp = time.strftime("%Y%m%d_%H%M%S")
+                    fname = f"{self.name}_{linger_event.label}_{timestamp}.jpg"
+                    out_dir = Path(self.cam_cfg.save_directory)
+                    out_dir.mkdir(parents=True, exist_ok=True)
+                    path = out_dir / fname
+                    cv2.imwrite(str(path), frame)
+                    # Enviar alerta
+                    self.notifier.send(
+                        camera_name=self.name,
+                        subject_detail=linger_event.label,
+                        linger_event=linger_event,
+                        frame_img=frame
+                    )
+                
 
             # 8) Mostrar en ventana
-            annotated = self.renderer.render(frame, tracked, linger_events)
+            annotated = self.renderer.render(frame, self.tracked, self.linger_events)
             if self.display_flag and not self.camera.display(annotated):
                 self.stop_event.set()
                 break

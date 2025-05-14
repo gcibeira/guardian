@@ -2,8 +2,8 @@ import logging
 import smtplib
 from email.message import EmailMessage
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
-from object_detector import Detection
+from typing import List
+from linger_detector import LingerEvent
 
 import pychromecast
 
@@ -19,7 +19,7 @@ class NotificationHandler(ABC):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: Detection,
+        linger_event: LingerEvent,
         frame_img,
     ) -> None:
         """Envía la alerta al canal correspondiente."""
@@ -38,7 +38,7 @@ class EmailNotificationHandler(NotificationHandler):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: Detection,
+        linger_event: LingerEvent,
         frame_img,
     ) -> None:
         if not self.enabled:
@@ -52,8 +52,7 @@ class EmailNotificationHandler(NotificationHandler):
         body = [
             f"Cámara: {camera_name}",
             f"Alerta: {subject_detail}",
-            "Objetos detectados: "
-            + ", ".join(f"{o.label} ({o.confidence:.2f})" for o in detected_objects),
+            f"Objeto detectado: {linger_event.label} (Duración: {linger_event.duration:.2f}s)",
         ]
         msg.set_content("\n".join(body))
 
@@ -113,20 +112,19 @@ class GoogleHomeNotificationHandler(NotificationHandler):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: Detection,
+        linger_event: LingerEvent,
         frame_img,
     ) -> None:
-        if not self.enabled or not self.cast or not detected_objects:
+        if not self.enabled or not self.cast or not linger_event:
             return
 
         mc = self.cast.media_controller
-        for obj in detected_objects:
-            url = f"{self.server_url}/{obj.label.lower()}.mp3"
-            try:
-                mc.play_media(url, "audio/mpeg")
-                mc.block_until_active()
-            except Exception as e:
-                self.logger.error(f"Error reproduciendo en Google Home: {e}")
+        url = f"{self.server_url}/{linger_event.label.lower()}.mp3"
+        try:
+            mc.play_media(url, "audio/mpeg")
+            mc.block_until_active()
+        except Exception as e:
+            self.logger.error(f"Error reproduciendo en Google Home: {e}")
 
 
 class NoOpNotificationHandler(NotificationHandler):
@@ -136,7 +134,7 @@ class NoOpNotificationHandler(NotificationHandler):
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: Detection,
+        linger_event: LingerEvent,
         frame_img,
     ) -> None:
         return
@@ -161,8 +159,8 @@ class NotificationManager:
         self,
         camera_name: str,
         subject_detail: str,
-        detected_objects: Detection,
+        linger_event: LingerEvent,
         frame_img,
     ) -> None:
         for handler in self.handlers:
-            handler.send_alert(camera_name, subject_detail, detected_objects, frame_img)
+            handler.send_alert(camera_name, subject_detail, linger_event, frame_img)
