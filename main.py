@@ -36,7 +36,7 @@ def setup_logging(level: str):
 def main():
     args = parse_args()
     setup_logging(args.log)
-    logger = logging.getLogger("main_monitor")
+    logger = logging.getLogger(__name__)
 
     # Cargar configuración
     try:
