@@ -29,7 +29,6 @@ class LingerDetector:
         for obj in tracked:
             cx = (obj.box[0] + obj.box[2]) // 2
             cy = (obj.box[1] + obj.box[3]) // 2
-            linger_duration = now - self.objects_in_roi[obj.id]["enter_time"]
             
             if x1 <= cx <= x2 and y1 <= cy <= y2:
                 # El objeto está dentro de la ROI
@@ -37,6 +36,7 @@ class LingerDetector:
                     self.objects_in_roi[obj.id] = {"enter_time": now, "alert_emitted": False}
                     self.logger.debug(f"Objeto {obj.id} entró en la ROI.")
                 else:
+                    linger_duration = now - self.objects_in_roi[obj.id]["enter_time"]
                     if linger_duration > self.linger_time and not self.objects_in_roi[obj.id]["alert_emitted"]:
                         # Emitir evento si supera linger_time y no se ha emitido alerta
                         events.append(LingerEvent(
@@ -50,7 +50,7 @@ class LingerDetector:
             else:
                 # El objeto está fuera de la ROI
                 if obj.id in self.objects_in_roi:
-                    self.logger.debug(f"Objeto {obj.id} salió de la ROI luego de {linger_duration:.2f} segundos.")
+                    self.logger.debug(f"Objeto {obj.id} salió de la ROI.")
                     del self.objects_in_roi[obj.id]  # Limpiar registro al salir
 
         return events
